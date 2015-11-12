@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="board">
+	<select id="list" resultType="BoardVo" parameterType="map">
+	<![CDATA[
+		SELECT *
+		FROM ( SELECT rownum as
+		rnum,
+		C.*
+		FROM (select a.no,
+		a.TITLE,
+		a.MEMBER_NO as
+		memberNo,
+		b.name as memberName,
+		a.VIEW_CNT AS viewCount,
+		to_char(a.REG_DATE,'yyyy-mm-dd hh:Mi:ss') AS
+		regDate,
+		a.group_no as
+		groupNo,
+		a.order_no as
+		orderNo,
+		a.depth
+		from board a,
+		member b
+		where
+		a.member_no=b.no
+		]]>
+		<if test="keyWord!=''">
+			and (a.title like '%${keyWord}%' or a.content like
+			'%${keyWord}%')
+		</if>
+		<![CDATA[
+		order by group_no
+		DESC,
+		order_no ASC,
+		a.reg_date desc) C )
+		WHERE
+		(#{page}-1)*#{pageSize}+1
+		<= rnum
+		AND rnum <= #{page}*#{pageSize}
+		]]>
+	</select>
+	<insert id="insert" parameterType="BoardVo">
+		insert
+		into board
+		<choose>
+			<when test="groupNo==null">
+				values(board_no_seq.nextval,
+				#{title} ,
+				#{content},
+				#{memberNo},
+				0,
+				sysdate,
+				nvl((select MAX(group_no) from board),0) + 1,
+				1,
+				1)
+			</when>
+			<otherwise>
+				values(board_no_seq.nextval,
+				#{title} ,
+				#{content},
+				#{memberNo},
+				0,
+				sysdate,
+				#{groupNo},
+				#{orderNo}+1,
+				#{depth}+1)
+			</otherwise>
+		</choose>
+	</insert>
+	<delete id="delete" parameterType="map">
+		delete
+		from board
+		where no=#{no}
+		and member_no=#{memberNo}
+	</delete>
+	<select id="selectByNo" parameterType="long" resultType="BoardVo">
+		select
+		no,
+		title,
+		content,
+		member_no as memberNo,
+		group_no as groupNo,
+		order_no as
+		orderNo,
+		depth
+		from board
+		where no=#{no}
+	</select>
+	<update id="update" parameterType="BoardVo">
+		update board
+		set
+		title=#{title},
+		content=#{content}
+		where no=#{no}
+		and
+		member_no=#{memberNo}
+	</update>
+	<update id="viewCount" parameterType="BoardVo">
+		update board
+		set view_cnt =
+		view_cnt+1
+		where no=#{no}
+	</update>
+	<update id="updateOrderNo" parameterType="long">
+		update board
+		set
+		order_no =
+		order_no+1
+		where order_no>#{parentOrderNo}
+	</update>
+	<select id="totalCount" resultType="long" parameterType="map">
+		select
+		count(*)
+		from board
+		<if test="keyWord!=''">
+			where (title like '%${keyWord}%' or content like
+			'%${keyWord}%')
+		</if>
+	</select>
+</mapper>

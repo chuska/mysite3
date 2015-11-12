@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="guestbook">
+
+	<select id="listbypage" parameterType="long" resultType="GuestbookVo">
+		<![CDATA[	
+		select * 
+		  from ( select rownum as r, 
+		                A.* 
+		           from (   select no, name, message, to_char(reg_date, 'yyyy-mm-dd hh:mi:ss') as regDate
+		                      from guestbook
+		                  order by reg_date desc ) A ) 
+		          where ( #{page } - 1 ) * 5 + 1 <= r and r <= #{page } * 5
+    	]]>
+	</select>
+
+	<select id="get" parameterType="long" resultType="GuestbookVo">
+		select no,
+		name,
+		message,
+		to_char( reg_date, 'yyyy-MM-dd hh:mi:ss' ) as regDate
+		from
+		guestbook
+		where no=#{no}
+	</select>
+
+	<insert id="insert" parameterType="GuestbookVo">
+		<selectKey keyProperty="no" resultType="long" order="BEFORE">
+			select
+			guestbook_seq.nextval from dual
+		</selectKey>
+		insert
+		into guestbook
+		values ( #{no },
+		#{name },
+		#{password },
+		#{message},
+		SYSDATE )
+	</insert>
+
+	<delete id="delete" parameterType="GuestbookVo">
+		delete from guestbook where
+		no=#{no} and password=#{password }
+	</delete>
+
+</mapper>
